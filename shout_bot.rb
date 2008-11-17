@@ -1,23 +1,40 @@
+require 'rubygems'
+require 'addressable/uri'
 require 'socket'
 
-class ShoutBot
-  def initialize(nick, server, port=6667)
-    @irc = TCPSocket.open(server, port)
-    @irc.puts "NICK #{nick}"
-    @irc.puts "USER #{nick} #{nick} #{nick} :#{nick}"
-    yield self
-    @irc.puts "QUIT"
-    @irc.gets until @irc.eof?
+class IRC
+  def self.shoot(uri, options={}, &block)
+    raise ArgumentError unless block_given?
+
+    uri = Addressable::URI.parse(uri)
+    irc = new(uri.host, uri.port, options.delete(:as))
+    irc.join(uri.path[1..-1], &block)
+  end
+
+  def initialize(server, port, nick)
+    @socket = TCPSocket.open(server, port)
+    @socket.puts "NICK #{nick}"
+    @socket.puts "USER #{nick} #{nick} #{nick} :#{nick}"
   end
 
   def join(channel)
-    @irc.puts "JOIN #{channel}"
-    @channel = channel
+    raise ArgumentError unless block_given?
+
+    @channel = "##{channel}"
+    @socket.puts "JOIN #{@channel}"
     yield self
-    @irc.puts "PART #{channel}"
+    @socket.puts "PART #{@channel}"
+    @socket.puts "QUIT"
+    @socket.gets until @socket.eof?
   end
 
-  def shout(message)
-    @irc.puts "PRIVMSG #{@channel} :#{message}"
+  def say(message)
+    @socket.puts "PRIVMSG #{@channel} :#{message}"
+  end
+end
+
+if $0 == __FILE__
+  IRC.shoot('irc://irc.freenode.net:6667/integrity-test', :as => 'integrityfoobarm') do |channel|
+    channel.say "foo"
   end
 end
