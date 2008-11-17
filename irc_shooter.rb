@@ -7,14 +7,20 @@ class IRC
     raise ArgumentError unless block_given?
 
     uri = Addressable::URI.parse(uri)
-    irc = new(uri.host, uri.port, options.delete(:as))
-    irc.join(uri.path[1..-1], &block)
+    irc = new(uri.host, uri.port, options.delete(:as)) do |irc|
+      irc.join(uri.path[1..-1], &block)
+    end
   end
 
   def initialize(server, port, nick)
+    raise ArgumentError unless block_given?
+
     @socket = TCPSocket.open(server, port)
     @socket.puts "NICK #{nick}"
     @socket.puts "USER #{nick} #{nick} #{nick} :#{nick}"
+    yield self
+    @socket.puts "QUIT"
+    @socket.gets until @socket.eof?
   end
 
   def join(channel)
@@ -24,11 +30,10 @@ class IRC
     @socket.puts "JOIN #{@channel}"
     yield self
     @socket.puts "PART #{@channel}"
-    @socket.puts "QUIT"
-    @socket.gets until @socket.eof?
   end
 
   def say(message)
+    return unless @channel
     @socket.puts "PRIVMSG #{@channel} :#{message}"
   end
 end
