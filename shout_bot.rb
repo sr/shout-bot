@@ -7,8 +7,7 @@ class ShoutBot
     @irc.puts "USER #{nick} #{nick} #{nick} :#{nick}"
     yield self
     @irc.puts "QUIT"
-    while @irc.gets
-    end
+    @irc.gets until @irc.eof?
   end
 
   def join(channel)
