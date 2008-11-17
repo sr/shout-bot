@@ -7,7 +7,7 @@ class ShoutBot
     @irc.puts "USER #{nick} #{nick} #{nick} :#{nick}"
     yield self
     @irc.puts "QUIT"
-    while line = @irc.gets
+    while @irc.gets
     end
   end
 
