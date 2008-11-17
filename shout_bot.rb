@@ -34,7 +34,7 @@ class IRC
 end
 
 if $0 == __FILE__
-  IRC.shoot('irc://irc.freenode.net:6667/integrity-test', :as => 'integrityfoobarm') do |channel|
-    channel.say "foo"
+  IRC.shoot('irc://irc.freenode.net:6667/integrity', :as => "Integrity#{rand(20)}") do |channel|
+    channel.say "harryjr, check me out! http://gist.github.com/25886"
   end
 end
