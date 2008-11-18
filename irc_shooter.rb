@@ -1,5 +1,5 @@
 =begin
-IRC Shooter
+Shooter
   <http://gist.github.com/25886>
 
   Harry Vangberg <http://trueaffection.net>
@@ -19,7 +19,7 @@ require "rubygems"
 require "addressable/uri"
 require "socket"
 
-class IRC
+class Shooter
   def self.shoot(uri, options={}, &block)
     raise ArgumentError unless block_given?
 
