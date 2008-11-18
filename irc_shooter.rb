@@ -1,6 +1,23 @@
-require 'rubygems'
-require 'addressable/uri'
-require 'socket'
+=begin
+IRC Shooter
+  <http://gist.github.com/25886>
+
+  Harry Vangberg <http://trueaffection.net>
+  Simon Rozet    <http://purl.org/net/sr/>
+
+EXAMPLE
+
+  IRC.shoot('irc://irc.freenode.net:6667/integrity', :as => "IntegrityBot") do |channel|
+    channel.say "check me out! http://gist.github.com/25886"
+  end
+
+LICENSE
+
+  WTFPL <http://sam.zoy.org/wtfpl/>
+=end
+require "rubygems"
+require "addressable/uri"
+require "socket"
 
 class IRC
   def self.shoot(uri, options={}, &block)
@@ -35,11 +52,5 @@ class IRC
   def say(message)
     return unless @channel
     @socket.puts "PRIVMSG #{@channel} :#{message}"
-  end
-end
-
-if $0 == __FILE__
-  IRC.shoot('irc://irc.freenode.net:6667/integrity', :as => "Integrity#{rand(20)}") do |channel|
-    channel.say "harryjr, check me out! http://gist.github.com/25886"
   end
 end
