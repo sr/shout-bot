@@ -1,36 +1,38 @@
 =begin
-Shooter
-  <http://gist.github.com/25886>
+ShoutBot
+  Ridiculously simple library to quickly say something on IRC
+  <http://github.com/sr/shout-bot>
 
 EXAMPLE
 
-  ShootBot.shoot('irc://irc.freenode.net:6667/github', :as => "ShootBot") do |channel|
-    channel.say "check me out! http://github.com/sr/shoot-bot"
+  ShoutBot.shout('irc://irc.freenode.net:6667/github', :as => "ShoutBot") do |channel|
+    channel.say "check me out! http://github.com/sr/shout-bot"
   end
 
 LICENSE
 
-               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-                       Version 2, December 2004
+             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                     Version 2, December 2004
 
-    Copyright (C) 2008 Simon Rozet <http://purl.org/net/sr/>
-    Copyright (C) 2008 Harry Vangberg <http://trueaffection.net>
+  Copyright (C) 2008 Simon Rozet <http://purl.org/net/sr/>
+  Copyright (C) 2008 Harry Vangberg <http://trueaffection.net>
 
-    Everyone is permitted to copy and distribute verbatim or modified
-    copies of this license document, and changing it is allowed as long
-    as the name is changed.
+  Everyone is permitted to copy and distribute verbatim or modified
+  copies of this license document, and changing it is allowed as long
+  as the name is changed.
 
-               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-      TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
-     0. You just DO WHAT THE FUCK YOU WANT TO.
+   0. You just DO WHAT THE FUCK YOU WANT TO.
 =end
+
 require "rubygems"
 require "addressable/uri"
 require "socket"
 
-class ShootBot
-  def self.shoot(uri, options={}, &block)
+class ShoutBot
+  def self.shout(uri, options={}, &block)
     raise ArgumentError unless block_given?
 
     uri = Addressable::URI.parse(uri)
@@ -67,14 +69,14 @@ end
 
 if $0 == __FILE__
   begin
-    require 'spec'
+    require "spec"
   rescue LoadError
     abort "No test for you :-("
   end
 
-  describe "Shooter" do
-    def create_shooter(&block)
-      @shooter ||= ShootBot.new("irc.freenode.net", 6667, "john", &block || lambda {})
+  describe "ShoutBot" do
+    def create_shouter(&block)
+      @shouter ||= ShoutBot.new("irc.freenode.net", 6667, "john", &block || lambda {})
     end
 
     setup do
@@ -83,27 +85,27 @@ if $0 == __FILE__
     end
 
     it "should exists" do
-      ShootBot.should be_an_instance_of Class
+      ShoutBot.should be_an_instance_of Class
     end
 
-    describe "When using Shooter.shoot" do
-      def do_shoot(&block)
-        ShootBot.shoot("irc://irc.freenode.net:6667/foo", :as => "john", &block || lambda {})
+    describe "When using Shouter.shout" do
+      def do_shout(&block)
+        ShoutBot.shout("irc://irc.freenode.net:6667/foo", :as => "john", &block || lambda {})
       end
 
       it "raises ArgumentError if no block given" do
-        lambda { do_shoot(nil) }.should raise_error(ArgumentError)
+        lambda { do_shout(nil) }.should raise_error(ArgumentError)
       end
 
-      it "creates a new shooter using URI and :as option" do
-        ShootBot.should_receive(:new).with("irc.freenode.net", 6667, "john")
-        do_shoot
+      it "creates a new shouter using URI and :as option" do
+        ShoutBot.should_receive(:new).with("irc.freenode.net", 6667, "john")
+        do_shout
       end
 
       it "join channel using URI's path" do
-        create_shooter.should_receive(:join).with("foo")
-        ShootBot.stub!(:new).and_yield(create_shooter)
-        do_shoot
+        create_shouter.should_receive(:join).with("foo")
+        ShoutBot.stub!(:new).and_yield(create_shouter)
+        do_shout
       end
 
       it "passes given block to join" do
@@ -114,33 +116,33 @@ if $0 == __FILE__
     describe "When initializing" do
       it "raises ArgumentError if no block given" do
         lambda do
-          create_shooter(nil)
+          create_shouter(nil)
         end.should raise_error(ArgumentError)
       end
 
       it "opens a TCPSocket to the given host on the given port" do
         TCPSocket.should_receive(:open).with("irc.freenode.net", 6667).and_return(@socket)
-        create_shooter
+        create_shouter
       end
 
       it "sets its nick" do
         @socket.should_receive(:puts).with("NICK john")
-        create_shooter
+        create_shouter
       end
 
       it "yields itself" do
-        create_shooter { |shooter| shooter.should respond_to(:join) }
+        create_shouter { |shouter| shouter.should respond_to(:join) }
       end
 
       it "quits" do
         @socket.should_receive(:puts).with("QUIT")
-        create_shooter
+        create_shouter
       end
     end
 
     describe "When joining a channel" do
       def do_join(&block)
-        create_shooter { |shooter| shooter.join('foo', &block || lambda {}) }
+        create_shouter { |shouter| shouter.join('foo', &block || lambda {}) }
       end
 
       it "raises ArgumentError if no block given" do
@@ -167,12 +169,12 @@ if $0 == __FILE__
     describe "When saying something" do
       it "should say the given message in the channel" do
         @socket.should_receive(:puts).with("PRIVMSG #foo :bar")
-        create_shooter { |shooter| shooter.join("foo") { |channel| channel.say "bar" } }
+        create_shouter { |shouter| shouter.join("foo") { |channel| channel.say "bar" } }
       end
 
       it "should stfu and return nil if not joined to a channel" do
         @socket.should_not_receive(:puts).with("PRIVMSG #foo :bar")
-        create_shooter { |shooter| shooter.say("bar").should be_nil }
+        create_shouter { |shouter| shouter.say("bar").should be_nil }
       end
     end
   end
