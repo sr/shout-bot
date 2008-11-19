@@ -2,9 +2,6 @@
 Shooter
   <http://gist.github.com/25886>
 
-  Harry Vangberg <http://trueaffection.net>
-  Simon Rozet    <http://purl.org/net/sr/>
-
 EXAMPLE
 
   ShootBot.shoot('irc://irc.freenode.net:6667/github', :as => "ShootBot") do |channel|
@@ -13,7 +10,20 @@ EXAMPLE
 
 LICENSE
 
-  WTFPL <http://sam.zoy.org/wtfpl/>
+               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                       Version 2, December 2004
+
+    Copyright (C) 2008 Simon Rozet <http://purl.org/net/sr/>
+    Copyright (C) 2008 Harry Vangberg <http://trueaffection.net>
+
+    Everyone is permitted to copy and distribute verbatim or modified
+    copies of this license document, and changing it is allowed as long
+    as the name is changed.
+
+               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+      TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+     0. You just DO WHAT THE FUCK YOU WANT TO.
 =end
 require "rubygems"
 require "addressable/uri"
