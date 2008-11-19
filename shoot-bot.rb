@@ -7,8 +7,8 @@ Shooter
 
 EXAMPLE
 
-  IRC.shoot('irc://irc.freenode.net:6667/integrity', :as => "IntegrityBot") do |channel|
-    channel.say "check me out! http://gist.github.com/25886"
+  ShootBot.shoot('irc://irc.freenode.net:6667/github', :as => "ShootBot") do |channel|
+    channel.say "check me out! http://github.com/sr/shoot-bot"
   end
 
 LICENSE
@@ -19,7 +19,7 @@ require "rubygems"
 require "addressable/uri"
 require "socket"
 
-class Shooter
+class ShootBot
   def self.shoot(uri, options={}, &block)
     raise ArgumentError unless block_given?
 
@@ -64,7 +64,7 @@ if $0 == __FILE__
 
   describe "Shooter" do
     def create_shooter(&block)
-      @shooter ||= Shooter.new("irc.freenode.net", 6667, "john", &block || lambda {})
+      @shooter ||= ShootBot.new("irc.freenode.net", 6667, "john", &block || lambda {})
     end
 
     setup do
@@ -73,12 +73,12 @@ if $0 == __FILE__
     end
 
     it "should exists" do
-      Shooter.should be_an_instance_of Class
+      ShootBot.should be_an_instance_of Class
     end
 
     describe "When using Shooter.shoot" do
       def do_shoot(&block)
-        Shooter.shoot("irc://irc.freenode.net:6667/foo", :as => "john", &block || lambda {})
+        ShootBot.shoot("irc://irc.freenode.net:6667/foo", :as => "john", &block || lambda {})
       end
 
       it "raises ArgumentError if no block given" do
@@ -86,13 +86,13 @@ if $0 == __FILE__
       end
 
       it "creates a new shooter using URI and :as option" do
-        Shooter.should_receive(:new).with("irc.freenode.net", 6667, "john")
+        ShootBot.should_receive(:new).with("irc.freenode.net", 6667, "john")
         do_shoot
       end
 
       it "join channel using URI's path" do
         create_shooter.should_receive(:join).with("foo")
-        Shooter.stub!(:new).and_yield(create_shooter)
+        ShootBot.stub!(:new).and_yield(create_shooter)
         do_shoot
       end
 
