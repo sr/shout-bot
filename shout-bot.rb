@@ -47,6 +47,7 @@ class ShoutBot
     @socket = TCPSocket.open(server, port)
     @socket.puts "NICK #{nick}"
     @socket.puts "USER #{nick} #{nick} #{nick} :#{nick}"
+    sleep 1
     yield self
     @socket.puts "QUIT"
     @socket.gets until @socket.eof?
