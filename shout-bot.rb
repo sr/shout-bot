@@ -80,7 +80,6 @@ exit unless $0 == __FILE__ || $0 == "-e"
 require "test/unit"
 require "context"
 require "rr"
-require 'ruby-debug'
 
 class ShoutBot
   include Test::Unit::Assertions
