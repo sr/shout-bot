@@ -1,0 +1,9 @@
+require 'autotest/growl'
+require 'autotest/redgreen'
+
+Autotest.add_hook :initialize do |at|
+  at.clear_mappings
+  at.add_mapping(/shout-bot.rb/) do
+    "shout-bot.rb"
+  end
+end
