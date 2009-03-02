@@ -36,7 +36,7 @@ class ShoutBot
     raise ArgumentError unless block_given?
 
     uri = Addressable::URI.parse(uri)
-    irc = new(uri.host, uri.port, uri.user) do |irc|
+    irc = new(uri.host, uri.port, uri.user, uri.password) do |irc|
       if channel = uri.fragment
         irc.join(channel, &block)
       else
@@ -48,10 +48,11 @@ class ShoutBot
 
   attr_accessor :channel
 
-  def initialize(server, port, nick)
+  def initialize(server, port, nick, password=nil)
     raise ArgumentError unless block_given?
 
     @socket = TCPSocket.open(server, port)
+    @socket.puts "PASSWORD #{password}" if password
     @socket.puts "NICK #{nick}"
     @socket.puts "USER #{nick} #{nick} #{nick} :#{nick}"
     #sleep 1  -- I can't run tests with this in place, dammit.
@@ -117,6 +118,12 @@ class TestShoutBot < Test::Unit::TestCase
     assert_equal "NICK john\n", @socket.gets
     assert_equal "USER john john john :john\n", @socket.gets
   end
+
+  test "sends password if specified" do
+    ShoutBot.new("irc.freenode.net", 6667, "john", "malbec") {}
+    @socket.rewind
+    assert_equal "PASSWORD malbec\n", @socket.gets
+  end
   
   test "raises error if no block is given to join" do
     create_shoutbot do |bot|
@@ -153,7 +160,7 @@ end
 class TestShouter < Test::Unit::TestCase
   def create_shouter(&block)
     shouter = ShoutBot.new("irc.freenode.net", 6667, "shouter") {}
-    mock(ShoutBot).new(anything, anything, anything).yields(shouter) {shouter}
+    mock(ShoutBot).new(anything, anything, anything, anything).yields(shouter) {shouter}
     shouter
   end
 
@@ -164,8 +171,13 @@ class TestShouter < Test::Unit::TestCase
   end
 
   test "creates a new instance of shoutbot" do
-    mock(ShoutBot).new("irc.freenode.net", 6667, "shouter")
+    mock(ShoutBot).new("irc.freenode.net", 6667, "shouter", nil)
     ShoutBot.shout("irc://shouter@irc.freenode.net:6667/foo") {}
+  end
+
+  test "creates a new instance of shoutbot with password" do
+    mock(ShoutBot).new("irc.freenode.net", 6667, "shouter", "badass")
+    ShoutBot.shout("irc://shouter:badass@irc.freenode.net:6667/foo") {}
   end
 
   test "joins channel" do
