@@ -81,6 +81,13 @@ if $0 == __FILE__ || $0 == "-e"
   require "context"
   require "rr"
 
+  class MockSocket
+    attr_accessor :in, :out
+    def gets() @in.gets end
+    def puts(m) @out.puts(m) end
+    def eof?() true end
+  end
+
   class ShoutBot
     include Test::Unit::Assertions
   end
@@ -89,7 +96,10 @@ if $0 == __FILE__ || $0 == "-e"
     include RR::Adapters::TestUnit
 
     def setup
-      @socket = StringIO.new
+      @socket, @server = MockSocket.new, MockSocket.new
+      @socket.in, @server.out = IO.pipe
+      @server.in, @socket.out = IO.pipe
+
       stub(TCPSocket).open(anything, anything) {@socket}
     end
   end
@@ -101,8 +111,7 @@ if $0 == __FILE__ || $0 == "-e"
 
     def create_shoutbot_and_register(&block)
       create_shoutbot &block
-      @socket.rewind
-      2.times { @socket.gets }
+      2.times { @server.gets } # NICK + USER
     end
 
     test "raises error if no block given" do
@@ -113,21 +122,25 @@ if $0 == __FILE__ || $0 == "-e"
 
     test "registers to the irc server" do
       create_shoutbot
-      @socket.rewind
-      assert_equal "NICK john\n", @socket.gets
-      assert_equal "USER john john john :john\n", @socket.gets
+      assert_equal "NICK john\n", @server.gets
+      assert_equal "USER john john john :john\n", @server.gets
     end
 
     test "sends password if specified" do
-      ShoutBot.new("irc.freenode.net", 6667, "john", "malbec") {}
-      @socket.rewind
-      assert_equal "PASSWORD malbec\n", @socket.gets
+      # hey, retarded test!
+      ShoutBot.new("irc.freenode.net", 6667, "john", "malbec") {@socket}
+      assert_equal "PASSWORD malbec\n", @server.gets
     end
     
     test "falls back to port 6667 if not specified" do
       # talk about retarded test
-      mock(TCPSocket).open("irc.freenode.net", 6667) {StringIO.new}
+      mock(TCPSocket).open("irc.freenode.net", 6667) {@socket}
       ShoutBot.new("irc.freenode.net", nil, "john") {}
+    end
+
+    test "quits after doing its job" do
+      create_shoutbot_and_register {}
+      assert_equal "QUIT\n", @server.gets
     end
 
     test "raises error if no block is given to join" do
@@ -140,7 +153,11 @@ if $0 == __FILE__ || $0 == "-e"
       create_shoutbot_and_register do |bot|
         bot.join("integrity") {}
       end
-      assert_equal "JOIN #integrity\n", @socket.gets
+      assert_equal "JOIN #integrity\n", @server.gets
+    end
+
+    test "doesn't do anything until receiving RPL_MYINFO / 004" do
+      # pending
     end
 
     test "joins channel and says something" do
@@ -149,8 +166,8 @@ if $0 == __FILE__ || $0 == "-e"
           c.say "foo bar!"
         end
       end
-      @socket.gets # JOIN
-      assert_equal "PRIVMSG #integrity :foo bar!\n", @socket.gets
+      @server.gets # JOIN
+      assert_equal "PRIVMSG #integrity :foo bar!\n", @server.gets
     end
 
     test "sends private message to user" do
@@ -158,7 +175,7 @@ if $0 == __FILE__ || $0 == "-e"
         bot.channel = "sr"
         bot.say "Look Ma, new tests!"
       end
-      assert_equal "PRIVMSG sr :Look Ma, new tests!\n", @socket.gets
+      assert_equal "PRIVMSG sr :Look Ma, new tests!\n", @server.gets
     end
   end
 
