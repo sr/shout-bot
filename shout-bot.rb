@@ -5,7 +5,7 @@ ShoutBot
 
 EXAMPLE
 
-  ShoutBot.shout('irc://irc.freenode.net:6667/github', :as => "ShoutBot") do |channel|
+  ShoutBot.shout('irc://shoutbot:password@irc.freenode.net:6667/#github') do |channel|
     channel.say "check me out! http://github.com/sr/shout-bot"
   end
 
@@ -14,8 +14,8 @@ LICENSE
              DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
                      Version 2, December 2004
 
-  Copyright (C) 2008 Simon Rozet <http://purl.org/net/sr/>
-  Copyright (C) 2008 Harry Vangberg <http://trueaffection.net>
+  Copyright (C) 2008, 2009 Simon Rozet <http://purl.org/net/sr/>
+  Copyright (C) 2008, 2009 Harry Vangberg <http://trueaffection.net>
 
   Everyone is permitted to copy and distribute verbatim or modified
   copies of this license document, and changing it is allowed as long
