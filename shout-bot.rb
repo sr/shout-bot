@@ -32,14 +32,21 @@ require "addressable/uri"
 require "socket"
 
 class ShoutBot
-  def self.shout(uri, options={}, &block)
+  def self.shout(uri, &block)
     raise ArgumentError unless block_given?
 
     uri = Addressable::URI.parse(uri)
-    irc = new(uri.host, uri.port, options.delete(:as)) do |irc|
-      irc.join(uri.path[1..-1], &block)
+    irc = new(uri.host, uri.port, uri.user) do |irc|
+      if channel = uri.fragment
+        irc.join(channel, &block)
+      else
+        irc.channel = uri.path[1..-1]
+        yield irc
+      end
     end
   end
+
+  attr_accessor :channel
 
   def initialize(server, port, nick)
     raise ArgumentError unless block_given?
@@ -47,7 +54,7 @@ class ShoutBot
     @socket = TCPSocket.open(server, port)
     @socket.puts "NICK #{nick}"
     @socket.puts "USER #{nick} #{nick} #{nick} :#{nick}"
-    sleep 1
+    #sleep 1  -- I can't run tests with this in place, dammit.
     yield self
     @socket.puts "QUIT"
     @socket.gets until @socket.eof?
@@ -68,115 +75,120 @@ class ShoutBot
   end
 end
 
-if $0 == __FILE__
-  begin
-    require "spec"
-  rescue LoadError
-    abort "No test for you :-("
+exit unless $0 == __FILE__ || $0 == "-e"
+require "test/unit"
+require "context"
+require "rr"
+require 'ruby-debug'
+
+class ShoutBot
+  include Test::Unit::Assertions
+end
+
+class Test::Unit::TestCase
+  include RR::Adapters::TestUnit
+
+  def setup
+    @socket = StringIO.new
+    stub(TCPSocket).open(anything, anything) {@socket}
+  end
+end
+
+class TestShoutBot < Test::Unit::TestCase
+  def create_shoutbot(&block)
+    ShoutBot.new("irc.freenode.net", 6667, "john", &block || lambda {})
   end
 
-  describe "ShoutBot" do
-    def create_shouter(&block)
-      @shouter ||= ShoutBot.new("irc.freenode.net", 6667, "john", &block || lambda {})
+  def create_shoutbot_and_register(&block)
+    create_shoutbot &block
+    @socket.rewind
+    2.times { @socket.gets }
+  end
+
+  test "raises error if no block given" do
+    assert_raises ArgumentError do
+      ShoutBot.new("irc.freenode.net", 6667, "john")
     end
+  end
 
-    setup do
-      @socket = mock("socket", :puts => "", :eof? => true, :gets => "")
-      TCPSocket.stub!(:open).and_return(@socket)
+  test "registers to the irc server" do
+    create_shoutbot
+    @socket.rewind
+    assert_equal "NICK john\n", @socket.gets
+    assert_equal "USER john john john :john\n", @socket.gets
+  end
+  
+  test "raises error if no block is given to join" do
+    create_shoutbot do |bot|
+      assert_raises(ArgumentError) {bot.join "integrity"}
     end
+  end
 
-    it "should exists" do
-      ShoutBot.should be_an_instance_of Class
+  test "joins channel" do
+    create_shoutbot_and_register do |bot|
+      bot.join("integrity") {}
     end
+    assert_equal "JOIN #integrity\n", @socket.gets
+  end
 
-    describe "When using Shouter.shout" do
-      def do_shout(&block)
-        ShoutBot.shout("irc://irc.freenode.net:6667/foo", :as => "john", &block || lambda {})
-      end
-
-      it "raises ArgumentError if no block given" do
-        lambda { do_shout(nil) }.should raise_error(ArgumentError)
-      end
-
-      it "creates a new shouter using URI and :as option" do
-        ShoutBot.should_receive(:new).with("irc.freenode.net", 6667, "john")
-        do_shout
-      end
-
-      it "join channel using URI's path" do
-        create_shouter.should_receive(:join).with("foo")
-        ShoutBot.stub!(:new).and_yield(create_shouter)
-        do_shout
-      end
-
-      it "passes given block to join" do
-        pending
-      end
-    end
-
-    describe "When initializing" do
-      it "raises ArgumentError if no block given" do
-        lambda do
-          create_shouter(nil)
-        end.should raise_error(ArgumentError)
-      end
-
-      it "opens a TCPSocket to the given host on the given port" do
-        TCPSocket.should_receive(:open).with("irc.freenode.net", 6667).and_return(@socket)
-        create_shouter
-      end
-
-      it "sets its nick" do
-        @socket.should_receive(:puts).with("NICK john")
-        create_shouter
-      end
-
-      it "yields itself" do
-        create_shouter { |shouter| shouter.should respond_to(:join) }
-      end
-
-      it "quits" do
-        @socket.should_receive(:puts).with("QUIT")
-        create_shouter
+  test "joins channel and says something" do
+    create_shoutbot_and_register do |bot|
+      bot.join "integrity" do |c|
+        c.say "foo bar!"
       end
     end
+    @socket.gets # JOIN
+    assert_equal "PRIVMSG #integrity :foo bar!\n", @socket.gets
+  end
 
-    describe "When joining a channel" do
-      def do_join(&block)
-        create_shouter { |shouter| shouter.join('foo', &block || lambda {}) }
-      end
-
-      it "raises ArgumentError if no block given" do
-        lambda do
-          do_join(nil)
-        end.should raise_error(ArgumentError)
-      end
-
-      it "joins the given channel" do
-        @socket.should_receive(:puts).with("JOIN #foo")
-        do_join
-      end
-
-      it "yields itself" do
-        do_join { |channel| channel.should respond_to(:say) }
-      end
-
-      it "parts the given channel" do
-        @socket.should_receive(:puts).with("PART #foo")
-        do_join
-      end
+  test "sends private message to user" do
+    create_shoutbot_and_register do |bot|
+      bot.channel = "sr"
+      bot.say "Look Ma, new tests!"
     end
+    assert_equal "PRIVMSG sr :Look Ma, new tests!\n", @socket.gets
+  end
+end
 
-    describe "When saying something" do
-      it "should say the given message in the channel" do
-        @socket.should_receive(:puts).with("PRIVMSG #foo :bar")
-        create_shouter { |shouter| shouter.join("foo") { |channel| channel.say "bar" } }
-      end
+class TestShouter < Test::Unit::TestCase
+  def create_shouter(&block)
+    shouter = ShoutBot.new("irc.freenode.net", 6667, "shouter") {}
+    mock(ShoutBot).new(anything, anything, anything).yields(shouter) {shouter}
+    shouter
+  end
 
-      it "should stfu and return nil if not joined to a channel" do
-        @socket.should_not_receive(:puts).with("PRIVMSG #foo :bar")
-        create_shouter { |shouter| shouter.say("bar").should be_nil }
-      end
+  test "raises error unless block is given" do
+    assert_raises ArgumentError do
+      ShoutBot.shout("irc://shouter@irc.freenode.net:6667/foo")
     end
+  end
+
+  test "creates a new instance of shoutbot" do
+    mock(ShoutBot).new("irc.freenode.net", 6667, "shouter")
+    ShoutBot.shout("irc://shouter@irc.freenode.net:6667/foo") {}
+  end
+
+  test "joins channel" do
+    shouter = create_shouter
+    mock(shouter).join("integrity")
+    ShoutBot.shout("irc://shouter@irc.freenode.net:6667/#integrity") {}
+  end
+
+  test "says stuff in channel" do
+    shouter = create_shouter
+    mock(shouter).say("foo bar!")
+    ShoutBot.shout("irc://shouter@irc.freenode.net:6667/#integrity") do |bot|
+      bot.say "foo bar!"
+    end
+    assert_equal "#integrity", shouter.channel
+  end
+
+  test "sends private message to nick" do
+    shouter = create_shouter
+    mock(shouter).say("foo bar!")
+    ShoutBot.shout("irc://shouter@irc.freenode.net:6667/harry") do |bot|
+      bot.say "foo bar!"
+    end
+    assert_equal "harry", shouter.channel
   end
 end
