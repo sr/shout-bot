@@ -55,7 +55,7 @@ class ShoutBot
     @socket.puts "PASSWORD #{password}" if password
     @socket.puts "NICK #{nick}"
     @socket.puts "USER #{nick} #{nick} #{nick} :#{nick}"
-    sleep 1 
+    sleep 1
     yield self
     @socket.puts "QUIT"
     @socket.gets until @socket.eof?
