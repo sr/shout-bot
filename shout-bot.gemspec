@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/sr/shout-bot"
   s.authors = ["Simon Rozet", "Harry Vangberg"]
   s.email = "simon@rozet.name"
-  s.files = ["shout-bot.rb"]
+  s.files = ["lib/shout-bot.rb"]
   s.require_paths = ["."]
   s.add_dependency("addressable")
 end
