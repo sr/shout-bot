@@ -31,13 +31,13 @@ require "addressable/uri"
 require "socket"
 
 class ShoutBot
-  def self.shout(uri, &block)
+  def self.shout(uri, password = nil, &block)
     raise ArgumentError unless block_given?
 
     uri = Addressable::URI.parse(uri)
     irc = new(uri.host, uri.port, uri.user, uri.password) do |irc|
       if channel = uri.fragment
-        irc.join(channel, &block)
+        irc.join(channel, password, &block)
       else
         irc.channel = uri.path[1..-1]
         yield irc
@@ -60,11 +60,12 @@ class ShoutBot
     @socket.gets until @socket.eof?
   end
 
-  def join(channel)
+  def join(channel, password = nil)
     raise ArgumentError unless block_given?
 
     @channel = "##{channel}"
-    @socket.puts "JOIN #{@channel}"
+    password = password && " #{password}" || ""
+    @socket.puts "JOIN #{@channel}#{password}"
     yield self
     @socket.puts "PART #{@channel}"
   end
