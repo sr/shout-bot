@@ -62,10 +62,10 @@ class ShoutBot
 
   def join(channel, password = nil)
     raise ArgumentError unless block_given?
-
-    @channel = "##{channel}"
-    password = password && " #{password}" || ""
-    @socket.puts "JOIN #{@channel}#{password}"
+    params = channel.split('?')
+    @channel = "##{params[0]}"
+    @channel_password = params[1] || password || ""
+    @socket.puts "JOIN #{@channel} #{@channel_password}"
     yield self
     @socket.puts "PART #{@channel}"
   end
