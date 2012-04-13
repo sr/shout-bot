@@ -8,6 +8,6 @@ Gem::Specification.new do |s|
   s.authors = ["Simon Rozet", "Harry Vangberg"]
   s.email = "simon@rozet.name"
   s.files = ["lib/shout-bot.rb"]
-  s.require_paths = ["."]
+  s.require_paths = ["lib"]
   s.add_dependency("addressable")
 end
