@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = "shout-bot"
   s.date = "2011-03-01"
-  s.version = "0.0.6"
+  s.version = "0.0.7"
   s.description = "Ridiculously simple library to quickly say something on IRC"
   s.summary = "Ridiculously simple library to quickly say something on IRC"
   s.homepage = "http://github.com/sr/shout-bot"
